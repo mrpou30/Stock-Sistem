@@ -3,10 +3,10 @@ function updateNetworkStatus() {
   const bar = document.getElementById('status-bar');
   if (navigator.onLine) {
     dot.style.background = 'limegreen';
-    bar.textContent = '🟢 Online';
+    bar.textContent = '🟢 Online - Terhubung ke jaringan';
   } else {
     dot.style.background = 'red';
-    bar.textContent = '🔴 Offline - Mode Lokal';
+    bar.textContent = '🔴 Offline - Silahkan hubungkan ke jaringan';
   }
 }
 

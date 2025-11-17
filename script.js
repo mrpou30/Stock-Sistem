@@ -105,9 +105,9 @@ async function openUserInfoModal() {
       font-family:Segoe UI, sans-serif;
       animation:popIn 0.25s ease;">
       
-      <h3 style="text-align:center; font-weight:700; margin-bottom:16px;">👤 Informasi Petugas</h3>
+      <h3 style="text-align:center; font-weight:700; margin-bottom:16px;">👤 Informasi Staff</h3>
 
-      <label style="font-weight:600;">Nama</label>
+      <label style="font-weight:600;">Nama<sup style="color:red;">*</sup></label>
       <input id="user-nama" type="text" placeholder="Nama lengkap" style="
         width:100%; margin-bottom:12px; padding:10px;
         border:none; border-radius:10px;
@@ -123,7 +123,7 @@ async function openUserInfoModal() {
         box-shadow:inset 3px 3px 6px #cbd3db, inset -3px -3px 6px #ffffff;
       ">
 
-      <label style="font-weight:600;">Departemen</label>
+      <label style="font-weight:600;">Departemen<sup style="color:red;">*</sup></label>
       <input id="user-dept" type="text" placeholder="Departemen / Bagian" style="
         width:100%; margin-bottom:12px; padding:10px;
         border:none; border-radius:10px;

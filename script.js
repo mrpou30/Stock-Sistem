@@ -1,75 +1,39 @@
-function updateNetworkStatus() {
-  const dot = document.getElementById('status-dot');
-  const bar = document.getElementById('status-bar');
-  if (navigator.onLine) {
-    dot.style.background = 'limegreen';
-    bar.textContent = '🟢 Online - Terhubung ke jaringan';
-  } else {
-    dot.style.background = 'red';
-    bar.textContent = '🔴 Offline - Silahkan hubungkan ke jaringan';
-  }
-}
+// =====================================
+// 🧩 RANDOM CHECK V 6.1 by mr.pou
+// =====================================
 
-updateNetworkStatus();
-  window.addEventListener('online', updateNetworkStatus);
-  window.addEventListener('offline', updateNetworkStatus);
-
-
-// ======================================================
-// 🧩 RANDOM CHECK V5.0 CORE SCRIPT
-// ======================================================
-
+//=========================
 // ===== Global Setup =====
+//=========================
+
+//scan barcode
+let html5QrCode;
+
+//pwa setting
+let deferredPrompt;
+
+//suara scan
+let beepLocked = false;
+
+const scannerBox = document.getElementById("scanner-box");
+
+//indexDB
 let db;
 const DB_NAME = "RandomCheckDB_V5";
 const DB_VERSION = 1;
 
-// =====================================
-// ⚙️ 1. Inisialisasi Database IndexedDB (Upgrade Versi 2)
-// =====================================
-async function initDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 2); // ⬅️ naikkan versi ke 2
+//API
+const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-LegEz9ZhksC-zX-kdajSGodcjPj4bvNj3x2Ak6nAjyZgJs6IeMw3NVJzpd9f_vV_ww/exec";
+const APP_SCRIPT_UPDATE_MASTER = "https://script.google.com/macros/s/AKfycbyl9weR_aVR5tWSgqiRH4BnlDQZRY_8-jHUMpY3UW89j6C7rwmNuURuy5PdFUPR9FQT_w/exec";
+const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz6gGu_KHi10ZNkBhwuqDaGKTMN4xIDjVQyHuAPaZhqxQXyQI89CJ9quJ9Ry6wj4kmh/exec";
 
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      
-      if (db.objectStoreNames.contains("dataOpname")) {
-    const store = request.transaction.objectStore("dataOpname");
-    store.createIndex("idx_upc", "upc", { unique: false });
-    store.createIndex("idx_article", "article", { unique: false });
-    }
+const APP_SCRIPT_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbwGu2q_nU2I1DsiZbErMH7B5IRYrQrjYTDnIY6pbxVkb8XookDnfSUeKQWIJYUHmw-t/exec";
 
-      // dataMaster: ubah key ke id supaya bisa punya upc sama beda sloc
-      if (db.objectStoreNames.contains("dataMaster")) {
-        db.deleteObjectStore("dataMaster");
-      }
-      const masterStore = db.createObjectStore("dataMaster", { keyPath: "id" });
-      masterStore.createIndex("idx_upc", "upc", { unique: false });
-      masterStore.createIndex("idx_article", "article", { unique: false });
+//=========================
+//====Helper Function======
+//=========================
 
-      if (!db.objectStoreNames.contains("dataOpname"))
-        db.createObjectStore("dataOpname", { keyPath: "id" });
-
-      if (!db.objectStoreNames.contains("dataUser"))
-        db.createObjectStore("dataUser", { keyPath: "id" });
-
-      if (!db.objectStoreNames.contains("dataHistoriOpname"))
-        db.createObjectStore("dataHistoriOpname", { keyPath: "id" });
-    };
-
-    request.onsuccess = (e) => {
-      db = e.target.result;
-      resolve(db);
-    };
-
-    request.onerror = (e) => reject(e);
-  });
-}
-
-// ======================================================
-// 🧩 Modal User Info — Identitas Petugas (inline CSS neumorphic)
-// ======================================================
+//use info
 async function openUserInfoModal() {
   if (!db) await initDB();
 
@@ -183,9 +147,7 @@ async function openUserInfoModal() {
   };
 }
 
-// ======================================================
-// 💾 Simpan data user ke IndexedDB dan localStorage
-// ======================================================
+//save user info
 async function saveUserInfo() {
   const nama = document.getElementById("user-nama").value.trim();
   const nip = document.getElementById("user-nip").value.trim();
@@ -230,9 +192,7 @@ async function saveUserInfo() {
   }
 }
 
-// ======================================================
-// 🧠 Isi form User Info jika sudah ada data
-// ======================================================
+//call user Info
 function isiUserInfoForm(user) {
   if (!user) return;
   document.getElementById("user-nama").value = user.nama || "";
@@ -241,9 +201,20 @@ function isiUserInfoForm(user) {
   document.getElementById("user-link").value = user.linkAdmin || "";
 }
 
-// ======================================================
-// ⚙️ 2. Loading Overlay (Universal)
-// ======================================================
+//indikator jaringan
+function updateNetworkStatus() {
+  const dot = document.getElementById('status-dot');
+  const bar = document.getElementById('status-bar');
+  if (navigator.onLine) {
+    dot.style.background = 'limegreen';
+    bar.textContent = '🟢 Online - Terhubung ke jaringan';
+  } else {
+    dot.style.background = 'red';
+    bar.textContent = '🔴 Offline - Silahkan hubungkan ke jaringan';
+  }
+}
+
+//Animasi loading
 function showLoading(text = "Memproses...") {
   let overlay = document.getElementById("loading-overlay");
   if (!overlay) {
@@ -262,11 +233,13 @@ function showLoading(text = "Memproses...") {
   overlay.style.display = "flex";
 }
 
+//hide loading
 function hideLoading() {
   const overlay = document.getElementById("loading-overlay");
   if (overlay) overlay.style.display = "none";
 }
 
+//loading progress
 function updateLoadingProgress(percent) {
   const bar = document.getElementById("loading-progress-bar");
   const label = document.getElementById("loading-progress-label");
@@ -275,10 +248,7 @@ function updateLoadingProgress(percent) {
   if (label) label.textContent = percent + "%";
 }
 
-
-// ======================================================
-// ⚙️ 3. Alert Neumorphic
-// ======================================================
+//Alert animation
 function showAlert(type, message, duration = 2500) {
   const alertBox = document.createElement("div");
   alertBox.className = `alert-box ${type}`;
@@ -293,85 +263,7 @@ function showAlert(type, message, duration = 2500) {
   }, duration);
 }
 
-// ======================================================
-// 🔍 4. Fungsi Lookup Item
-// ======================================================
-async function lookupItem(keyword) {
-  try {
-    showLoading("Mencari data...");
-    if (!db) await initDB();
-
-    keyword = keyword.trim();
-    if (!keyword) {
-      hideLoading();
-      showAlert("info", "Input barcode / article kosong!");
-      return;
-    }
-
-    // --- Cek di dataOpname dulu ---
-    const opnameTx = db.transaction("dataOpname", "readonly");
-    const opnameStore = opnameTx.objectStore("dataOpname");
-        // 🔍 Cari di dataOpname berdasarkan UPC atau Article
-    const opnameData = await new Promise((resolve) => {
-      const result = null;
-      opnameStore.openCursor().onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) {
-          const val = cursor.value;
-          if (val.upc === keyword || val.article === keyword) {
-            resolve(val);
-            return; // stop loop
-          }
-          cursor.continue();
-        } else {
-          resolve(null);
-        }
-      };
-    });
-
-    if (opnameData) {
-      hideLoading();
-      showAlert("info", "Data ditemukan di Opname (Mode Edit)");
-      tampilkanDataForm(opnameData, "edit");
-      window.lastOpnameId = opnameData.id;
-      return;
-    }
-
-    // --- Jika tidak ada, cek di dataMaster ---
-    const masterTx = db.transaction("dataMaster", "readonly");
-    const masterStore = masterTx.objectStore("dataMaster");
-    const result = [];
-
-    masterStore.openCursor().onsuccess = (e) => {
-      const cursor = e.target.result;
-      if (cursor) {
-        const item = cursor.value;
-        if (item.upc === keyword || item.article === keyword) {
-          result.push(item);
-        }
-        cursor.continue();
-      } else {
-        hideLoading();
-        if (result.length > 0) {
-          const merged = mergeSloc(result);
-          showAlert("success", "Data ditemukan di Master (Mode New)");
-          tampilkanDataForm(merged, "new");
-        } else {
-          resetFormOpname();
-          showAlert("error", "Data tidak ditemukan di Master!");
-        }
-      }
-    };
-  } catch (err) {
-    hideLoading();
-    console.error(err);
-    showAlert("error", "Terjadi kesalahan saat lookup!");
-  }
-}
-
-// ======================================================
-// 🔧 Helper untuk Penyimpanan dataMaster
-// ======================================================
+//function Hapus Penyimpanan
 async function clearStore(storeName) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -386,6 +278,7 @@ async function clearStore(storeName) {
   });
 }
 
+//normalisasi struktur JSON
 function normalizeRows(rows) {
   return rows.map((r) => {
     const low = {};
@@ -403,6 +296,7 @@ function normalizeRows(rows) {
   }).filter(i => i.upc && i.article);
 }
 
+// save master
 function saveMasterBulk(list) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -423,16 +317,6 @@ function saveMasterBulk(list) {
     tx.onerror = (e) => reject(e);
   });
 }
-
-// ======================================================
-// ⚙️ Fungsi Update Master (Upload, Server, GDrive, Hapus)
-// ======================================================
-
-const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-LegEz9ZhksC-zX-kdajSGodcjPj4bvNj3x2Ak6nAjyZgJs6IeMw3NVJzpd9f_vV_ww/exec";
-
-const APP_SCRIPT_UPDATE_MASTER = "https://script.google.com/macros/s/AKfycbyl9weR_aVR5tWSgqiRH4BnlDQZRY_8-jHUMpY3UW89j6C7rwmNuURuy5PdFUPR9FQT_w/exec";
-
-const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz6gGu_KHi10ZNkBhwuqDaGKTMN4xIDjVQyHuAPaZhqxQXyQI89CJ9quJ9Ry6wj4kmh/exec";
 
 // Upload XLS/XLSX
 async function updateMasterFromExcelFile(file) {
@@ -492,223 +376,6 @@ async function updateMasterFromCSVFile(file) {
   }
 }
 
-// Ambil dari Server (AppScript)
-async function updateMasterFromServer() {
-  try {
-    showLoading("Mengambil master dari server...");
-    await initDB();
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const linkAdmin = userInfo.linkAdmin;
-    if (!linkAdmin) throw new Error("linkAdmin tidak ditemukan di userInfo");
-
-    const url = `${APP_SCRIPT_URL}?linkAdmin=${encodeURIComponent(linkAdmin)}`;
-    
-    const res = await fetch(url);
-    
-    const data = await res.json();
-    const normalized = normalizeRows(Array.isArray(data) ? data : data.data || []);
-    await clearStore("dataMaster");
-    const cnt = await saveMasterBulk(normalized);
-
-    hideLoading();
-    showAlert("success", `Master dari server tersimpan (${cnt} item).`);
-    const modal = document.getElementById("update-master-modal");
-    if (modal) modal.remove();
-  } catch (e) {
-    hideLoading();
-    showAlert("error", "Gagal ambil master dari server: " + e.message);
-  }
-}
-
-// Upload ke GDrive (generate master.json)
-async function generateAndUploadMasterJson(rows) {
-  try {
-    showLoading("Menyiapkan master.json...");
-
-    // ==========================
-    // 1) NORMALISASI DATA
-    // ==========================
-    const normalized = normalizeRows(rows || []);
-
-    if (!normalized.length) {
-      hideLoading();
-      showAlert("error", "Data kosong setelah normalisasi. Cek file XLS/CSV.");
-      return;
-    }
-
-    // ==========================
-    // 2) Ambil linkAdmin dari user login
-    // ==========================
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const linkAdmin = userInfo.linkAdmin || "";
-
-    if (!linkAdmin) {
-      hideLoading();
-      showAlert("error", "LinkAdmin tidak ditemukan di userInfo.");
-      return;
-    }
-
-    // ==========================
-    // 3) GET Folder ID ke DRIVE_UPLOAD_URL (GET)
-    // ==========================
-    showLoading("Mengambil Folder ID dari server...");
-
-    const url = DRIVE_UPLOAD_URL +
-      "?action=get_master_folder&linkAdmin=" +
-      encodeURIComponent(linkAdmin);
-
-    let folderId = "";
-
-    try {
-      const r = await fetch(url);
-      const d = await r.json();
-
-      if (d.status === "success") {
-        folderId = d.folderId;
-      } else {
-        console.warn("Gagal ambil folderId:", d);
-      }
-    } catch (err) {
-      console.warn("GET folderId error:", err);
-    }
-
-    // Jika gagal, fallback prompt
-    if (!folderId) {
-      hideLoading();
-      folderId = prompt(
-        "Folder ID master.json tidak ditemukan di Sheet MASTER_JSON.\nMasukkan Folder ID secara manual:"
-      );
-      if (!folderId) {
-        showAlert("info", "Upload dibatalkan.");
-        return;
-      }
-      showLoading("Folder ID diterima...");
-    }
-
-    // ==========================
-    // 4) Siapkan file master.json
-    // ==========================
-    const filename = "master.json";
-    const jsonContent = JSON.stringify(normalized);
-
-    const payload = {
-      action: "upload_master_json",
-      filename,
-      folderId,
-      content: jsonContent,
-      meta: {
-        generatedAt: new Date().toISOString(),
-        by: userInfo.nama || "unknown"
-      }
-    };
-
-    // ==========================
-    // 5) Upload master.json ke Drive
-    // ==========================
-    showLoading("Mengunggah master.json ke Google Drive...");
-
-    const resp = await fetch(DRIVE_UPLOAD_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    hideLoading();
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "");
-      console.error("Upload gagal:", resp.status, errText);
-      showAlert("error", "Upload gagal. Cek Apps Script.");
-      return;
-    }
-
-    const resJson = await resp.json();
-
-    if (resJson.status === "success") {
-      showAlert("success", resJson.message || "master.json berhasil diupload!");
-    } else {
-      showAlert("warning", resJson.message || "Upload selesai, namun ada catatan.");
-    }
-
-    // Tutup modal
-    const modal = document.getElementById("update-master-modal");
-    if (modal) modal.remove();
-
-  } catch (err) {
-    hideLoading();
-    console.error("Kesalahan:", err);
-    showAlert("error", "Kesalahan saat upload master.json.");
-  }
-}
-
-function _setupUpdateMasterModalAccess() {
-  const btnUploadDrive = document.getElementById("btn-upload-drive");
-  if (!btnUploadDrive) return;
-
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-  const nama = (userInfo.nama || "").trim();
-  const allowed = ["admin123", "Admin", "ADMIN"];
-
-  // Show/hide button
-  if (allowed.includes(nama)) {
-    btnUploadDrive.style.display = "";
-  } else {
-    btnUploadDrive.style.display = "none";
-  }
-
-  // Prevent duplicate handler
-  if (btnUploadDrive._hasHandler) return;
-  btnUploadDrive._hasHandler = true;
-
-  btnUploadDrive.addEventListener("click", async () => {
-    const fX = document.getElementById("input-xlsx").files[0];
-    const fC = document.getElementById("input-csv").files[0];
-
-    if (!fX && !fC) {
-      return showAlert("info", "Pilih file XLSX atau CSV terlebih dahulu.");
-    }
-
-    try {
-      showLoading("Membaca file...");
-
-      let rows = [];
-
-      if (fX) {
-        const data = await new Promise((res, rej) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const wb = XLSX.read(e.target.result, { type: 'binary' });
-              const sheet = wb.Sheets[wb.SheetNames[0]];
-              res(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
-            } catch (err) { rej(err); }
-          };
-          reader.readAsBinaryString(fX);
-        });
-        rows = data;
-      } else if (fC) {
-        const text = await fC.text();
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        const headers = lines[0].split(',').map(h => h.trim());
-        rows = lines.slice(1).map(line => {
-          const cols = line.split(',');
-          const obj = {};
-          headers.forEach((h, i) => obj[h] = cols[i] || "");
-          return obj;
-        });
-      }
-
-      hideLoading();
-      await generateAndUploadMasterJson(rows);
-
-    } catch (err) {
-      hideLoading();
-      console.error(err);
-      showAlert("error", "Gagal membaca atau upload.");
-    }
-  });
-}
-
 // Hapus Master
 async function clearDataMaster() {
   try {
@@ -725,9 +392,7 @@ async function clearDataMaster() {
   }
 }
 
-// ======================================================
-// 🔧 5. Gabung Qty dari Banyak SLOC
-// ======================================================
+//gabung sloc
 function mergeSloc(list) {
   const totalQty = list.reduce((sum, i) => sum + Number(i.qty || 0), 0);
   const hint = list.map(i => `SLOC ${i.sloc}: ${i.qty}`).join(" | ");
@@ -743,27 +408,7 @@ function mergeSloc(list) {
   };
 }
 
-// ======================================================
-// 🧾 6. Tampilkan Data ke Form Input
-// ======================================================
-function tampilkanDataForm(data, mode) {
-  document.getElementById("input-upc").value = data.upc || "";
-  document.getElementById("article").value = data.article || "";
-  document.getElementById("desc").value = data.desc || "";
-  document.getElementById("qty-sistem").value = data.qtySistem || "";
-  document.getElementById("harga").value = data.harga || 0;
-  document.getElementById("sloc").textContent = data.hintSloc || "";
-  document.getElementById("qty-fisik").value = data.qtyFisik || "";
-  document.getElementById("keterangan").value = data.keterangan || "";
-
-  // Simpan mode aktif
-  document.body.dataset.mode = mode;
-  window.activeSlocList = data.slocList || [];
-}
-
-// ======================================================
-// 💾 SIMPAN / UPDATE DATA OPNAME (mode new / edit)
-// ======================================================
+//simpan data
 async function simpanDataOpname() {
   const btn = document.getElementById("btn-save");
   try {
@@ -891,9 +536,6 @@ const slocList = window.activeSlocList || [];
   }
 }
 
-// ======================================================
-// 🧹 RESET FORM SETELAH SIMPAN
-// ======================================================
 function resetFormOpname() {
   const fields = ["input-upc", "article", "desc", "qty-sistem", "qty-fisik", "harga", "keterangan"];
   fields.forEach(id => {
@@ -902,38 +544,10 @@ function resetFormOpname() {
   });
   const slocEl = document.getElementById("sloc");
   if (slocEl) slocEl.textContent = "";
+  window.activeSlocList = [];
   document.body.dataset.mode = "new";
   window.lastOpnameId = null;
 }
-
-// ======================================================
-// 🎯 EVENT: Klik Tombol SIMPAN
-// ======================================================
-document.addEventListener("DOMContentLoaded", () => {
-  const btnSimpan = document.getElementById("btn-save");
-
-  // Jika tombol sudah ada di DOM saat halaman dimuat
-  if (btnSimpan) {
-    btnSimpan.addEventListener("click", (e) => {
-      e.preventDefault();
-      simpanDataOpname();
-    });
-  } else {
-    // Jika tombol muncul dinamis (misal setelah load template)
-    const observer = new MutationObserver(() => {
-      const dynamicBtn = document.getElementById("btn-simpan");
-      if (dynamicBtn) {
-        dynamicBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          simpanDataOpname();
-        });
-        observer.disconnect();
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
-});
-
 
 function updateUserHeaderInfo() {
   const el = document.getElementById("user-info-header");
@@ -963,33 +577,6 @@ function updateUserHeaderInfo() {
   `;
 }
 
-// ======================================================
-// 🚀 7. Init Saat Halaman Dibuka
-// ======================================================
-document.addEventListener("DOMContentLoaded", async () => {
-  showLoading("Memuat aplikasi...");
-  await initDB();
-  hideLoading();
-  openUserInfoModal();
-  showAlert("info", "Silahkan isi data terlebih dahulu");
-  updateUserHeaderInfo();
-});
-
-// ======================================================
-// 📲 8. Event Lookup (Enter / Scan)
-// ======================================================
-const inputUPC = document.getElementById("input-upc");
-if (inputUPC) {
-  inputUPC.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      lookupItem(inputUPC.value);
-    }
-  });
-}
-
-// ======================================================
-// 🧩 Modal Update Master — Inline Style Neumorphic
-// ======================================================
 function openUpdateMasterModal() {
   if (document.getElementById("update-master-modal")) {
     document.getElementById("update-master-modal").style.display = "flex";
@@ -1228,9 +815,6 @@ document.getElementById("btn-upload-drive").onclick = async () => {
   };
 }
 
-// ======================================================
-// 👀 LIHAT DATA OPNAME (MODAL + TABEL + EDIT/HAPUS)
-// ======================================================
 async function lihatDataOpname() {
   try {
     showLoading("Memuat data opname...");
@@ -1492,16 +1076,6 @@ async function hapusSemuaDataOpname() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const btnLihat = document.getElementById("btn-view");
-  if (btnLihat) {
-    btnLihat.addEventListener("click", () => lihatDataOpname());
-  }
-});
-
-// ======================================================
-// 📜 MODAL HISTORY
-// ======================================================
 async function openHistoryModal() {
   try {
     showLoading("Memuat history...");
@@ -1736,14 +1310,7 @@ function exportHistoryToXLS() {
   URL.revokeObjectURL(url);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const btnHistory = document.getElementById("btn-history");
-  if (btnHistory) {
-    btnHistory.addEventListener("click", () => openHistoryModal());
-   }
-  });
-  
-  function confirmClearHistory() {
+function confirmClearHistory() {
   if (!confirm("Hapus semua data history?")) return;
 
   showLoading("Menghapus history...");
@@ -1767,40 +1334,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 }
 
-
-// ==========================
-// 📸 Scan Barcode (Auto Enter)
-// ==========================
-const btnScan = document.getElementById("btn-scan");
-const btnCloseScan = document.getElementById("btn-close-scan");
-const scannerBox = document.getElementById("scanner-box");
-let html5QrCode;
-
-btnScan.addEventListener("click", () => {
-  scannerBox.style.display = "block";
-  html5QrCode = new Html5Qrcode("scanner");
-  const config = { fps: 10, qrbox: 250, facingMode: "environment" }; // Kamera belakang
-  html5QrCode.start(
-    { facingMode: "environment" },
-    config,
-    (decodedText) => {
-      playBeep();
-      inputUPC.value = decodedText;
-      html5QrCode.stop();
-      scannerBox.style.display = "none";
-
-      // 🚀 Langsung auto lookup
-      lookupItem(decodedText.trim());
-    }
-  );
-});
-
-btnCloseScan.addEventListener("click", () => {
-  if (html5QrCode) html5QrCode.stop();
-  scannerBox.style.display = "none";
-});
-
-// Jalankan kamera belakang jika tersedia
+//kamera scan barcode
 function startScanner() {
   Html5Qrcode.getCameras()
     .then(devices => {
@@ -1812,7 +1346,7 @@ function startScanner() {
           backCam.id,
           { fps: 10, qrbox: { width: 250, height: 150 } },
           (decodedText) => {
-            inputUpc.value = decodedText;
+            inputUPC.value = decodedText;
             stopScanner();
             console.log("Scan berhasil:", decodedText);
             
@@ -1843,8 +1377,6 @@ function stopScanner() {
   }
 }
 
-let beepLocked = false;
-
 function playBeep() {
   if (beepLocked) return;
   beepLocked = true;
@@ -1868,12 +1400,6 @@ function playBeep() {
     beepLocked = false;
   }, 250); // durasi beep 250 ms (lebih panjang & jelas)
 }
-  
-  
-  // ======================================================
-// 📤 UPLOAD DATA OPNAME -> Apps Script (POST JSON)
-// ======================================================
-const APP_SCRIPT_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbwGu2q_nU2I1DsiZbErMH7B5IRYrQrjYTDnIY6pbxVkb8XookDnfSUeKQWIJYUHmw-t/exec"; // <- ganti
 
 async function readAllDataOpname() {
   if (!db) await initDB();
@@ -1974,8 +1500,475 @@ async function uploadOpnameToServer() {
   }
 }
 
-// Pasang event ke tombol upload (id btn-upload)
-document.addEventListener("DOMContentLoaded", () => {
+//=========================
+//=====Core Function=======
+//=========================
+
+//initial indexDB
+async function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 2); // ⬅️ naikkan versi ke 2
+
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      
+      if (db.objectStoreNames.contains("dataOpname")) {
+    const store = request.transaction.objectStore("dataOpname");
+    store.createIndex("idx_upc", "upc", { unique: false });
+    store.createIndex("idx_article", "article", { unique: false });
+    }
+
+      // dataMaster: ubah key ke id supaya bisa punya upc sama beda sloc
+      if (db.objectStoreNames.contains("dataMaster")) {
+        db.deleteObjectStore("dataMaster");
+      }
+      const masterStore = db.createObjectStore("dataMaster", { keyPath: "id" });
+      masterStore.createIndex("idx_upc", "upc", { unique: false });
+      masterStore.createIndex("idx_article", "article", { unique: false });
+
+      if (!db.objectStoreNames.contains("dataOpname"))
+        db.createObjectStore("dataOpname", { keyPath: "id" });
+
+      if (!db.objectStoreNames.contains("dataUser"))
+        db.createObjectStore("dataUser", { keyPath: "id" });
+
+      if (!db.objectStoreNames.contains("dataHistoriOpname"))
+        db.createObjectStore("dataHistoriOpname", { keyPath: "id" });
+    };
+
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      resolve(db);
+    };
+
+    request.onerror = (e) => reject(e);
+  });
+}
+
+//function lookup
+async function lookupItem(keyword) {
+  try {
+    showLoading("Mencari data...");
+    if (!db) await initDB();
+
+    keyword = keyword.trim();
+    if (!keyword) {
+      hideLoading();
+      showAlert("info", "Input barcode / article kosong!");
+      return;
+    }
+
+    // --- Cek di dataOpname dulu ---
+    const opnameTx = db.transaction("dataOpname", "readonly");
+    const opnameStore = opnameTx.objectStore("dataOpname");
+        // 🔍 Cari di dataOpname berdasarkan UPC atau Article
+    const opnameData = await new Promise((resolve) => {
+      const result = null;
+      opnameStore.openCursor().onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          const val = cursor.value;
+          if (val.upc === keyword || val.article === keyword) {
+            resolve(val);
+            return; // stop loop
+          }
+          cursor.continue();
+        } else {
+          resolve(null);
+        }
+      };
+    });
+
+    if (opnameData) {
+      hideLoading();
+      showAlert("info", "Data ditemukan di Opname (Mode Edit)");
+      tampilkanDataForm(opnameData, "edit");
+      window.lastOpnameId = opnameData.id;
+      return;
+    }
+
+    // --- Jika tidak ada, cek di dataMaster ---
+    const masterTx = db.transaction("dataMaster", "readonly");
+    const masterStore = masterTx.objectStore("dataMaster");
+    const result = [];
+
+    masterStore.openCursor().onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        const item = cursor.value;
+        if (item.upc === keyword || item.article === keyword) {
+          result.push(item);
+        }
+        cursor.continue();
+      } else {
+        hideLoading();
+        if (result.length > 0) {
+          const merged = mergeSloc(result);
+          showAlert("success", "Data ditemukan di Master (Mode New)");
+          tampilkanDataForm(merged, "new");
+        } else {
+          resetFormOpname();
+          showAlert("error", "Data tidak ditemukan di Master!");
+        }
+      }
+    };
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAlert("error", "Terjadi kesalahan saat lookup!");
+  }
+}
+
+// Ambil dari Server (AppScript)
+async function updateMasterFromServer() {
+  try {
+    showLoading("Mengambil master dari server...");
+    await initDB();
+    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+    const linkAdmin = userInfo.linkAdmin;
+    if (!linkAdmin) throw new Error("linkAdmin tidak ditemukan di userInfo");
+
+    const url = `${APP_SCRIPT_URL}?linkAdmin=${encodeURIComponent(linkAdmin)}`;
+    
+    const res = await fetch(url);
+    
+    const data = await res.json();
+    const normalized = normalizeRows(Array.isArray(data) ? data : data.data || []);
+    await clearStore("dataMaster");
+    const cnt = await saveMasterBulk(normalized);
+
+    hideLoading();
+    showAlert("success", `Master dari server tersimpan (${cnt} item).`);
+    const modal = document.getElementById("update-master-modal");
+    if (modal) modal.remove();
+  } catch (e) {
+    hideLoading();
+    showAlert("error", "Gagal ambil master dari server: " + e.message);
+  }
+}
+
+//modal update master
+function _setupUpdateMasterModalAccess() {
+  const btnUploadDrive = document.getElementById("btn-upload-drive");
+  if (!btnUploadDrive) return;
+
+  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+  const nama = (userInfo.nama || "").trim();
+  const allowed = ["admin123", "Admin", "ADMIN"];
+
+  // Show/hide button
+  if (allowed.includes(nama)) {
+    btnUploadDrive.style.display = "";
+  } else {
+    btnUploadDrive.style.display = "none";
+  }
+
+  // Prevent duplicate handler
+  if (btnUploadDrive._hasHandler) return;
+  btnUploadDrive._hasHandler = true;
+
+  btnUploadDrive.addEventListener("click", async () => {
+    const fX = document.getElementById("input-xlsx").files[0];
+    const fC = document.getElementById("input-csv").files[0];
+
+    if (!fX && !fC) {
+      return showAlert("info", "Pilih file XLSX atau CSV terlebih dahulu.");
+    }
+
+    try {
+      showLoading("Membaca file...");
+
+      let rows = [];
+
+      if (fX) {
+        const data = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const wb = XLSX.read(e.target.result, { type: 'binary' });
+              const sheet = wb.Sheets[wb.SheetNames[0]];
+              res(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
+            } catch (err) { rej(err); }
+          };
+          reader.readAsBinaryString(fX);
+        });
+        rows = data;
+      } else if (fC) {
+        const text = await fC.text();
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const headers = lines[0].split(',').map(h => h.trim());
+        rows = lines.slice(1).map(line => {
+          const cols = line.split(',');
+          const obj = {};
+          headers.forEach((h, i) => obj[h] = cols[i] || "");
+          return obj;
+        });
+      }
+
+      hideLoading();
+      await generateAndUploadMasterJson(rows);
+
+    } catch (err) {
+      hideLoading();
+      console.error(err);
+      showAlert("error", "Gagal membaca atau upload.");
+    }
+  });
+}
+
+// Upload ke GDrive (generate master.json)
+async function generateAndUploadMasterJson(rows) {
+  try {
+    showLoading("Menyiapkan master.json...");
+
+    // ==========================
+    // 1) NORMALISASI DATA
+    // ==========================
+    const normalized = normalizeRows(rows || []);
+
+    if (!normalized.length) {
+      hideLoading();
+      showAlert("error", "Data kosong setelah normalisasi. Cek file XLS/CSV.");
+      return;
+    }
+
+    // ==========================
+    // 2) Ambil linkAdmin dari user login
+    // ==========================
+    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+    const linkAdmin = userInfo.linkAdmin || "";
+
+    if (!linkAdmin) {
+      hideLoading();
+      showAlert("error", "LinkAdmin tidak ditemukan di userInfo.");
+      return;
+    }
+
+    // ==========================
+    // 3) GET Folder ID ke DRIVE_UPLOAD_URL (GET)
+    // ==========================
+    showLoading("Mengambil Folder ID dari server...");
+
+    const url = DRIVE_UPLOAD_URL +
+      "?action=get_master_folder&linkAdmin=" +
+      encodeURIComponent(linkAdmin);
+
+    let folderId = "";
+
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+
+      if (d.status === "success") {
+        folderId = d.folderId;
+      } else {
+        console.warn("Gagal ambil folderId:", d);
+      }
+    } catch (err) {
+      console.warn("GET folderId error:", err);
+    }
+
+    // Jika gagal, fallback prompt
+    if (!folderId) {
+      hideLoading();
+      folderId = prompt(
+        "Folder ID master.json tidak ditemukan di Sheet MASTER_JSON.\nMasukkan Folder ID secara manual:"
+      );
+      if (!folderId) {
+        showAlert("info", "Upload dibatalkan.");
+        return;
+      }
+      showLoading("Folder ID diterima...");
+    }
+
+    // ==========================
+    // 4) Siapkan file master.json
+    // ==========================
+    const filename = "master.json";
+    const jsonContent = JSON.stringify(normalized);
+
+    const payload = {
+      action: "upload_master_json",
+      filename,
+      folderId,
+      content: jsonContent,
+      meta: {
+        generatedAt: new Date().toISOString(),
+        by: userInfo.nama || "unknown"
+      }
+    };
+
+    // ==========================
+    // 5) Upload master.json ke Drive
+    // ==========================
+    showLoading("Mengunggah master.json ke Google Drive...");
+
+    const resp = await fetch(DRIVE_UPLOAD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    hideLoading();
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      console.error("Upload gagal:", resp.status, errText);
+      showAlert("error", "Upload gagal. Cek Apps Script.");
+      return;
+    }
+
+    const resJson = await resp.json();
+
+    if (resJson.status === "success") {
+      showAlert("success", resJson.message || "master.json berhasil diupload!");
+    } else {
+      showAlert("warning", resJson.message || "Upload selesai, namun ada catatan.");
+    }
+
+    // Tutup modal
+    const modal = document.getElementById("update-master-modal");
+    if (modal) modal.remove();
+
+  } catch (err) {
+    hideLoading();
+    console.error("Kesalahan:", err);
+    showAlert("error", "Kesalahan saat upload master.json.");
+  }
+}
+
+function tampilkanDataForm(data, mode) {
+  document.getElementById("input-upc").value = data.upc || "";
+  document.getElementById("article").value = data.article || "";
+  document.getElementById("desc").value = data.desc || "";
+  document.getElementById("qty-sistem").value = data.qtySistem || "";
+  document.getElementById("harga").value = data.harga || 0;
+  document.getElementById("sloc").textContent = data.hintSloc || "";
+  document.getElementById("qty-fisik").value = data.qtyFisik || "";
+  document.getElementById("keterangan").value = data.keterangan || "";
+
+  // Simpan mode aktif
+  document.body.dataset.mode = mode;
+  window.activeSlocList = data.slocList || [];
+}
+
+
+//=========================
+//=====Event Bindding======
+//=========================
+
+document.addEventListener ("DOMContentLoaded", async () => {
+  
+//init load
+showLoading("Memuat aplikasi...");
+  await initDB();
+  hideLoading();
+  openUserInfoModal();
+  showAlert("info", "Silahkan isi data terlebih dahulu");
+  updateUserHeaderInfo();
+  
+//deklarasi terlebih dahulu
+const inputUPC = document.getElementById("input-upc");
+const btnUploadSpreadsheet = document.getElementById("btn-upload-spreadsheet");
+const btnSimpan = document.getElementById("btn-save");
+const btnLihat = document.getElementById("btn-view");
+const btnScan = document.getElementById("btn-scan");
+const btnCloseScan = document.getElementById("btn-close-scan");
+const btnHistory = document.getElementById("btn-history");
+const btnValidasi = document.getElementById("btn-validasi");
+
+
+//input upc enter
+if (inputUPC) {
+  inputUPC.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      lookupItem(inputUPC.value);
+    }
+  });
+}
+//tombol upload ke spreadsheet
+if (btnUploadSpreadsheet) {
+    btnUploadSpreadsheet.addEventListener("click", (e) => {
+      e.preventDefault();
+      uploadOpnameToServer(); // ← memanggil fungsi upload
+    });
+  }
+//event tombol simpan data
+if (btnSimpan) {
+    btnSimpan.addEventListener("click", (e) => {
+      e.preventDefault();
+      simpanDataOpname();
+    });
+  } else {
+    // Jika tombol muncul dinamis (misal setelah load template)
+    const observer = new MutationObserver(() => {
+      const dynamicBtn = document.getElementById("btn-save");
+      if (dynamicBtn) {
+        dynamicBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          simpanDataOpname();
+        });
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+//event lihat data opname
+if (btnLihat) {
+    btnLihat.addEventListener("click", () => lihatDataOpname());
+  }
+//event mulai kamera
+if (btnScan) {
+  btnScan.addEventListener("click", () => {
+  scannerBox.style.display = "block";
+  html5QrCode = new Html5Qrcode("scanner");
+  const config = {
+  fps: 10,
+  qrbox: { width: 320, height: 320 }, // iOS butuh area lebih besar
+  aspectRatio: 1.0,                   // wajib, bantu fokus iOS
+  formatsToSupport: [ 
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.UPC_A,
+    Html5QrcodeSupportedFormats.UPC_E,
+    Html5QrcodeSupportedFormats.CODE_128,
+    Html5QrcodeSupportedFormats.CODE_39  
+  ]
+}; // Kamera belakang
+  html5QrCode.start(
+    { facingMode: "environment" },
+    config,
+    (decodedText) => {
+      playBeep();
+      document.getElementById("input-upc").value = decodedText;
+      html5QrCode.stop();
+      scannerBox.style.display = "none";
+
+      // 🚀 Langsung auto lookup
+      lookupItem(decodedText.trim());
+    }
+  );
+})}
+//event close kamera
+if (btnCloseScan) {
+  btnCloseScan.addEventListener("click", () => {
+  if (html5QrCode) html5QrCode.stop();
+  scannerBox.style.display = "none";
+})}
+//event buka history opname
+if (btnHistory) {
+    btnHistory.addEventListener("click", () => openHistoryModal());
+   }
+//event tombol validasi (under maintenance)
+if (btnValidasi) {
+    btnValidasi.addEventListener("click", () => {
+      showAlert("info", "Fitur Validasi masih dalam pengembangan 👷");
+    });
+  }
+
+});
+
+/* document.addEventListener("DOMContentLoaded", () => {
   const btnUpload = document.getElementById("btn-upload");
   if (btnUpload) {
     btnUpload.addEventListener("click", (e) => {
@@ -1983,35 +1976,17 @@ document.addEventListener("DOMContentLoaded", () => {
       uploadOpnameToServer();
     });
   }
-});
+}); */
 
+//=========================
+//====Initialization=======
+//=========================
 
-// ====================================
-// 🔘 EVENT UNTUK TOMBOL UPLOAD DATA OPNAME
-// ====================================
-document.addEventListener("DOMContentLoaded", () => {
-  const btnUpload = document.getElementById("btn-upload-spreadsheet");
-  if (btnUpload) {
-    btnUpload.addEventListener("click", (e) => {
-      e.preventDefault();
-      uploadOpnameToServer(); // ← memanggil fungsi upload yang tadi kita buat
-    });
-  }
-});
+updateNetworkStatus();
+window.addEventListener('online', updateNetworkStatus);
+window.addEventListener('offline', updateNetworkStatus);
 
-//progres pengembangan Validasi
-document.addEventListener("DOMContentLoaded", () => {
-  const btnValidasi = document.getElementById("btn-validasi");
-  if (btnValidasi) {
-    btnValidasi.addEventListener("click", () => {
-      showAlert("info", "Fitur Validasi masih dalam pengembangan ☕🚬");
-    });
-  }
-});
-
-
-let deferredPrompt;
-
+//Tombol untuk install di android
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
@@ -2030,3 +2005,4 @@ window.addEventListener("beforeinstallprompt", (e) => {
     deferredPrompt = null;
   });
 });
+  
